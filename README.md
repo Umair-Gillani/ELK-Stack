@@ -1,4 +1,4 @@
-### Pre-Requisites
+# Pre-Requisites
 
 **step1:** Stop the firewall so ELK ports are not blocked.
 
@@ -26,7 +26,7 @@ bash
 
 ---
 
-### elastic search
+# Elastic search
 
 **step1:** Import Elastic’s official GPG key so RPM signatures are trusted.
 
@@ -51,19 +51,22 @@ wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-9.0.3-x8
 
 ```bash
 sudo rpm --install elasticsearch-9.0.3-x86_64.rpm
+# output of the above command: The generated password for the elastic built-in superuser is : WrN9yZrv=0hJxbw-CShc
 ```
 
 **step5:** Edit the main config to form a single-node, unsecured demo cluster.
 
 ```bash
 vim /etc/elasticsearch/elasticsearch.yml
+```
+```
 # Inside the file set/ensure:
-# cluster.name: elasticsearch-demo
-# network.host: 0.0.0.0
-# transport.host: 0.0.0.0
-# #cluster.initial_master_nodes: ["localhost.localdomain"]   (commented out)
-# xpack.security.enabled: false
-# discovery.type: single-node
+cluster.name: elasticsearch-demo
+network.host: 0.0.0.0
+transport.host: 0.0.0.0
+#cluster.initial_master_nodes: ["localhost.localdomain"]   (comment out this line for single node ELK cluster)
+xpack.security.enabled: false
+discovery.type: single-node
 ```
 
 **step6:** Reload unit files and start Elasticsearch at boot right away.
@@ -71,25 +74,23 @@ vim /etc/elasticsearch/elasticsearch.yml
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now elasticsearch.service
-# The service prints a one-time password, e.g. WrN9yZrv=0hJxbw-CShc
 ```
 
 **step7:** Test cluster health with that password.
 
 ```bash
-curl -u elastic:'WrN9yZrv=0hJxbw-CShc' http://localhost:9200/_cluster/health?pretty
+curl -u elastic:'<password_here>' http://localhost:9200/_cluster/health?pretty
 ```
 
 **step8:** Give the JVM a fixed 2 GB heap (adjust to suit your box).
 
 ```bash
-echo '-Xms2g' >  /etc/elasticsearch/jvm.options.d/heap.options
-echo '-Xmx2g' >> /etc/elasticsearch/jvm.options.d/heap.options
+echo '-Xmx2g' >> /etc/elasticsearch/jvm.options.d/heap.options # adjust 2g → value for your box
 ```
 
 ---
 
-### kibana
+# Kibana
 
 **step1:** Download the Kibana 9.0.3 RPM and its checksum.
 
@@ -114,10 +115,15 @@ sudo rpm --install kibana-9.0.3-x86_64.rpm
 
 ```bash
 vim /etc/kibana/kibana.yml
-# server.host: 0.0.0.0
-# elasticsearch.hosts: ["http://localhost:9200"]
-# elasticsearch.username: "elastic"
-# elasticsearch.password: "WrN9yZrv=0hJxbw-CShc"
+```
+```
+server.host: 0.0.0.0
+```
+Kibana Failed when adding below lines
+```
+elasticsearch.hosts: ["http://localhost:9200"]
+elasticsearch.username: "elastic"
+elasticsearch.password: "WrN9yZrv=0hJxbw-CShc"
 ```
 
 **step5:** Reload unit files and start Kibana at boot.
