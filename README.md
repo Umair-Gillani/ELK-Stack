@@ -88,6 +88,68 @@ curl -u elastic:'<password_here>' http://localhost:9200/_cluster/health?pretty
 echo '-Xmx2g' >> /etc/elasticsearch/jvm.options.d/heap.options # adjust 2g → value for your box
 ```
 
+
+## **Elasticsearch – Multi-DC & Replication**
+
+**step1:** Configure both VMs to join the same cluster.
+
+```bash
+vim /etc/elasticsearch/elasticsearch.yml      # on BOTH VMs
+cluster.name: elk-demo-cluster
+node.name: elk-node-1            # ← change to elk-node-2 on node-2
+network.host: 0.0.0.0            # or the node’s exact IP
+discovery.seed_hosts: ["10.1.122.150","10.1.122.250"]
+cluster.initial_master_nodes: ["elk-node-1","elk-node-2"]
+xpack.security.enabled: false    # keep off in lab; enable in prod
+```
+
+**step2:** Start (or restart) Elasticsearch on each node.
+
+```bash
+sudo systemctl start elasticsearch.service
+```
+
+**step3:** Patch any pre-existing indices so they gain one replica.
+
+```bash
+for idx in $(curl -s 10.1.122.150:9200/_cat/indices?h=index); do
+  curl -XPUT 10.1.122.150:9200/"$idx"/_settings \
+       -H 'Content-Type: application/json' \
+       -d'{"number_of_replicas":1}'
+done
+```
+
+**step4:** Validate cluster settings, node list, health, and shard layout.
+
+```bash
+curl 10.1.122.150:9200/_cluster/settings?pretty
+curl -s http://10.1.122.150:9200/_cat/nodes?v
+curl -s http://10.1.122.150:9200/_cluster/health?pretty   # <- "number_of_data_nodes" : 2
+curl -s 10.1.122.150:9200/_cat/shards?v
+```
+---
+
+## **Point Logstash & Beats at the New Cluster**
+
+Update every **output** section so data is sent to both Elasticsearch nodes:
+
+```ruby
+output {
+  elasticsearch {
+    hosts => ["http://10.0.0.11:9200","http://10.0.0.12:9200"]
+  }
+}
+```
+
+For Beats (Filebeat, Metricbeat, etc.) the equivalent block is:
+
+```yaml
+output.elasticsearch:
+  hosts: ["http://10.0.0.11:9200","http://10.0.0.12:9200"]
+```
+
+After editing, restart Logstash or the relevant Beat to apply the change.
+
 ---
 
 # Kibana
