@@ -136,7 +136,7 @@ Update every **output** section so data is sent to both Elasticsearch nodes:
 ```ruby
 output {
   elasticsearch {
-    hosts => ["http://10.0.0.11:9200","http://10.0.0.12:9200"]
+    hosts => ["http://10.1.122.150:9200","http://10.1.122.250:9200"]
   }
 }
 ```
